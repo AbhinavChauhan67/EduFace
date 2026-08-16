@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduFace - Register Student</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes slideDownMenu { from { opacity: 0; transform: translateY(-12px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .menu-transition { animation: slideDownMenu 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans min-h-screen flex flex-col items-center p-4">
+    <header class="w-full max-w-md flex justify-between items-center py-4 relative">
+        <div onclick="location.href='/'" class="flex items-center gap-2 text-blue-900 font-bold text-xl cursor-pointer">
+            <span class="p-2 bg-blue-100 rounded-lg text-blue-600">📷</span> EduFace
+        </div>
+        <button id="menu-btn" class="text-gray-600 text-3xl focus:outline-none p-1">☰</button>
+        <div id="nav-dropdown" class="hidden absolute right-0 top-16 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 py-2">
+            <a href="/" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">🏠 Home</a>
+            <a href="/dashboard" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">📊 Dashboard</a>
+            <a href="/attendance" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">📷 Attendance Session</a>
+            <a href="/register" class="block px-4 py-3 text-sm text-blue-600 bg-blue-50/50 font-bold border-b border-gray-50">👤 Register</a>
+            <a href="/admin" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">⚙️ Admin Tool</a>
+        </div>
+    </header>
+
+    <main class="w-full max-w-md bg-white p-6 rounded-2xl border border-gray-100 mt-4 shadow-sm">
+        <div id="step-1" class="transition-all duration-300">
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Step 1: Identity Parameters</h2>
+            <p class="text-gray-400 text-xs mb-4">Input student profile values safely.</p>
+            <div class="flex flex-col gap-3">
+                <input type="text" id="fn" placeholder="First Name" class="w-full border rounded-xl p-3 text-sm focus:outline-blue-500 transition-all">
+                <input type="text" id="sn" placeholder="Surname" class="w-full border rounded-xl p-3 text-sm focus:outline-blue-500 transition-all">
+                <input type="text" id="rn" placeholder="Roll Number" class="w-full border rounded-xl p-3 text-sm focus:outline-blue-500 transition-all">
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="class_num" class="border rounded-xl p-3 text-sm bg-white focus:outline-blue-500">
+                        <option value="">Choose Class</option>
+                        {% for i in range(1, 13) %}<option value="{{i}}">Class {{i}}</option>{% endfor %}
+                    </select>
+                    <select id="section_letter" class="border rounded-xl p-3 text-sm bg-white focus:outline-blue-500">
+                        <option value="">Choose Section</option>
+                        <option value="A">Section A</option>
+                        <option value="B">Section B</option>
+                    </select>
+                </div>
+                
+                <button onclick="startStep2()" class="bg-blue-600 text-white font-medium py-3 rounded-xl mt-2 hover:bg-blue-700 transform active:scale-95 transition-all">Go to Camera Calibration &rarr;</button>
+            </div>
+        </div>
+
+        <div id="step-2" class="hidden text-center">
+            <h2 class="text-xl font-bold text-gray-800 mb-2">Step 2: Camera Capture Layout</h2>
+            <div class="flex justify-center gap-4 text-xs font-bold mb-4">
+                <span id="a-1" class="text-blue-600 border-b-2 border-blue-600 pb-1">1. Front View</span>
+                <span id="a-2" class="text-gray-300 pb-1">2. Right Side</span>
+                <span id="a-3" class="text-gray-300 pb-1">3. Left Side</span>
+            </div>
+            <div class="w-full h-64 bg-black rounded-2xl overflow-hidden mb-4 relative">
+                <video id="v" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                <canvas id="c" class="hidden"></canvas>
+            </div>
+            <button id="snap-btn" class="w-full bg-blue-600 text-white font-medium py-3 rounded-xl transform active:scale-95 transition-all">Capture Image</button>
+        </div>
+    </main>
+
+    <script>
+        const btn = document.getElementById('menu-btn');
+        const menu = document.getElementById('nav-dropdown');
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if(menu.classList.contains('hidden')){ menu.classList.remove('hidden'); menu.classList.add('menu-transition'); }
+            else { menu.classList.add('hidden'); menu.classList.remove('menu-transition'); }
+        });
+        document.addEventListener('click', () => { menu.classList.add('hidden'); menu.classList.remove('menu-transition'); });
+
+        let payload = {}, idx = 0, views = ['front', 'right_side', 'left_side'], track = null;
+
+        function startStep2() {
+            const cNum = document.getElementById('class_num').value;
+            const sLet = document.getElementById('section_letter').value;
+            
+            // Format to a single consistent layout style e.g., "8A"
+            const fullClassSection = (cNum && sLet) ? `${cNum}${sLet}` : "";
+
+            payload = { 
+                first_name: document.getElementById('fn').value, 
+                surname: document.getElementById('sn').value, 
+                roll_no: document.getElementById('rn').value, 
+                class_section: fullClassSection, 
+                images: {} 
+            };
+            
+            if(!payload.first_name || !payload.surname || !payload.roll_no || !payload.class_section) {
+                return alert("Please fill out all identity profile parameters correctly.");
+            }
+            
+            document.getElementById('step-1').classList.add('hidden');
+            document.getElementById('step-2').classList.remove('hidden');
+            
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+                .then(s => { track = s; document.getElementById('v').srcObject = s; })
+                .catch(() => alert("Camera block active. Check safety rules."));
+        }
+
+        document.getElementById('snap-btn').addEventListener('click', () => {
+            const v = document.getElementById('v'), c = document.getElementById('c'), ctx = c.getContext('2d');
+            c.width = v.videoWidth || 640; c.height = v.videoHeight || 480;
+            ctx.drawImage(v, 0, 0, c.width, c.height);
+            payload.images[views[idx]] = c.toDataURL('image/jpeg');
+            
+            document.getElementById(`a-${idx+1}`).className = "text-gray-300 pb-1";
+            idx++;
+            if(idx < views.length) {
+                document.getElementById(`a-${idx+1}`).className = "text-blue-600 border-b-2 border-blue-600 pb-1";
+            } else {
+                if(track) track.getTracks().forEach(t => t.stop());
+                fetch('/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) })
+                    .then(res => {
+                        if (!res.ok) {
+                            return res.json().then(err => { throw new Error(err.message); });
+                        }
+                        return res.json();
+                    })
+                    .then(res => { alert(res.message); location.href = '/'; })
+                    .catch(err => { alert(err.message); location.reload(); });
+            }
+        });
+    </script>
+</body>
+</html>
+

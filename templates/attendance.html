@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduFace - Attendance Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes slideDownMenu { from { opacity: 0; transform: translateY(-12px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .menu-transition { animation: slideDownMenu 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes alertPopup { from { transform: scale(0.9) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+        .alert-animate { animation: alertPopup 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans min-h-screen flex flex-col items-center p-4">
+    <header class="w-full max-w-md flex justify-between items-center py-4 relative">
+        <div onclick="location.href='/'" class="flex items-center gap-2 text-blue-900 font-bold text-xl cursor-pointer">
+            <span class="p-2 bg-blue-100 rounded-lg text-blue-600">📷</span> EduFace
+        </div>
+        <button id="menu-btn" class="text-gray-600 text-3xl focus:outline-none p-1">☰</button>
+        <div id="nav-dropdown" class="hidden absolute right-0 top-16 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 py-2">
+            <a href="/" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">🏠 Home</a>
+            <a href="/dashboard" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">📊 Dashboard</a>
+            <a href="/attendance" class="block px-4 py-3 text-sm text-blue-600 bg-blue-50/50 font-bold border-b border-gray-50">📷 Attendance Session</a>
+            <a href="/register" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">👤 Register</a>
+            <a href="/admin" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">⚙️ Admin Tool</a>
+        </div>
+    </header>
+
+    <main class="w-full max-w-md text-center mt-4">
+        <h2 class="text-xl font-bold text-gray-800 text-left mb-1">Live Scanning Box</h2>
+        <p class="text-gray-400 text-xs text-left mb-4">Position face clearly into the streaming lens.</p>
+        
+        <div class="w-full h-72 bg-neutral-950 rounded-3xl overflow-hidden border-4 border-white shadow-xl relative">
+            <video id="v" autoplay playsinline muted class="w-full h-full object-cover"></video>
+            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 px-4 py-1 rounded-full text-white text-[11px] font-semibold flex items-center gap-2">
+                <span class="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></span> Scanning Active
+            </div>
+        </div>
+        <div id="msg" class="mt-4 p-4 rounded-xl hidden font-bold text-sm alert-animate shadow-sm"></div>
+    </main>
+
+    <script>
+        const btn = document.getElementById('menu-btn');
+        const menu = document.getElementById('nav-dropdown');
+        
+        // Navigation Dropdown Handler
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if(menu.classList.contains('hidden')){ 
+                menu.classList.remove('hidden'); 
+                menu.classList.add('menu-transition'); 
+            } else { 
+                menu.classList.add('hidden'); 
+                menu.classList.remove('menu-transition'); 
+            }
+        });
+        document.addEventListener('click', () => { 
+            menu.classList.add('hidden'); 
+            menu.classList.remove('menu-transition'); 
+        });
+
+        // Initialize Camera Stream Setup
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+            .then(s => { 
+                document.getElementById('v').srcObject = s; 
+                setTimeout(verify, 2000); 
+            })
+            .catch(err => {
+                alert("Camera access denied. Please check your browser device permissions.");
+            });
+
+        function verify() {
+            fetch('/scan', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({image: ""}) })
+                .then(res => res.json()).then(d => {
+                    const box = document.getElementById('msg'); 
+                    box.classList.remove('hidden');
+                    
+                    if(d.status === 'success') {
+                        if(d.message.includes("already")) {
+                            box.className = "mt-4 p-4 rounded-xl bg-amber-50 text-amber-800 border border-amber-100 alert-animate shadow-sm";
+                            box.innerText = `⚠️ ${d.name}: ${d.message}`;
+                        } else {
+                            box.className = "mt-4 p-4 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-100 alert-animate shadow-sm";
+                            box.innerText = `✅ Success: ${d.name} (${d.message})`;
+                        }
+                    } else {
+                        box.className = "mt-4 p-4 rounded-xl bg-rose-50 text-rose-800 border border-rose-100 alert-animate shadow-sm";
+                        box.innerText = `❌ Match Failure: ${d.message}`;
+                    }
+
+                    // FIX: Comment changed to JavaScript standard. Box hides smoothly after 2 seconds.
+                    setTimeout(() => {
+                        box.classList.add('hidden');
+                    }, 2000);
+                });
+        }
+    </script>
+</body>
+</html>
+

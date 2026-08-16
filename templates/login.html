@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduFace - Admin Verification</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 font-sans min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-white p-6 rounded-2xl border border-gray-100 shadow-xl text-center">
+        <div class="p-3.5 bg-blue-50 text-blue-600 rounded-2xl w-fit mx-auto mb-4 text-xl">⚙️</div>
+        <h2 class="text-xl font-bold text-gray-800 tracking-tight">Admin Gatekeeper</h2>
+        <p class="text-gray-400 text-xs mt-1 mb-6">Authentication required to view system directories.</p>
+
+        {% if error %}
+        <div class="mb-4 p-3 rounded-xl bg-rose-50 text-rose-700 text-xs font-semibold border border-rose-100 text-left">
+            ⚠️ {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" action="/login" class="flex flex-col gap-3">
+            <input 
+                type="password" 
+                name="password" 
+                placeholder="Enter Administrator Password" 
+                autofocus
+                required
+                class="w-full border rounded-xl p-3 text-sm text-center focus:outline-blue-500 transition-all font-mono tracking-widest"
+            >
+            <button 
+                type="submit" 
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl shadow-sm transform active:scale-98 transition-all text-sm mt-1"
+            >
+                Verify Identity
+            </button>
+        </form>
+        
+        <a href="/" class="inline-block mt-4 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors">&larr; Return back to Home</a>
+    </div>
+</body>
+</html>
+

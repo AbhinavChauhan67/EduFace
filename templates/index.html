@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduFace - Welcome</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes slideDownMenu { from { opacity: 0; transform: translateY(-12px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .menu-transition { animation: slideDownMenu 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans min-h-screen flex flex-col items-center p-4">
+    <header class="w-full max-w-md flex justify-between items-center py-4 relative">
+        <div onclick="location.href='/'" class="flex items-center gap-2 text-blue-900 font-bold text-xl cursor-pointer">
+            <span class="p-2 bg-blue-100 rounded-lg text-blue-600">📷</span> EduFace
+        </div>
+        <button id="menu-btn" class="text-gray-600 text-3xl focus:outline-none p-1 transition-transform active:scale-90">☰</button>
+        
+        <div id="nav-dropdown" class="hidden absolute right-0 top-16 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 py-2">
+            <a href="/" class="block px-4 py-3 text-sm text-blue-600 bg-blue-50/50 font-bold border-b border-gray-50">🏠 Home</a>
+            <a href="/dashboard" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">📊 Dashboard</a>
+            <a href="/attendance" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">📷 Attendance Session</a>
+            <a href="/register" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">👤 Register</a>
+            <a href="/admin" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">⚙️ Admin Tool</a>
+        </div>
+    </header>
+
+    <main class="w-full max-w-md text-center flex flex-col gap-6 mt-6">
+        <div class="animate-fade-in">
+            <h1 class="text-4xl font-extrabold text-blue-900 tracking-tight">Attendance.<br><span class="text-blue-600">Automated.</span></h1>
+            <p class="text-gray-500 mt-3 text-sm px-2">Touchless biometric tracking system running directly inside Termux environment workflows.</p>
+        </div>
+
+        <div class="bg-white border border-gray-100 p-6 rounded-2xl shadow-sm text-left flex flex-col gap-4 transform hover:scale-[1.02] active:scale-[0.99] transition-all duration-300">
+            <div class="p-3 bg-blue-50 text-blue-600 rounded-xl w-fit">📷</div>
+            <div>
+                <h3 class="font-bold text-gray-800 text-lg">Take Attendance</h3>
+                <p class="text-gray-400 text-xs mt-1">Open camera interface metrics framework scanning loops.</p>
+            </div>
+            <button onclick="location.href='/attendance'" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl shadow-sm transition-all">Open Camera &rarr;</button>
+        </div>
+
+        <div class="bg-white border border-gray-100 p-6 rounded-2xl shadow-sm text-left flex flex-col gap-4 transform hover:scale-[1.02] active:scale-[0.99] transition-all duration-300">
+            <div class="p-3 bg-cyan-50 text-cyan-600 rounded-xl w-fit">👤</div>
+            <div>
+                <h3 class="font-bold text-gray-800 text-lg">Register Student</h3>
+                <p class="text-gray-400 text-xs mt-1">Map biometric credentials across three separate spatial angle loops.</p>
+            </div>
+            <button onclick="location.href='/register'" class="w-full border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium py-3 rounded-xl transition-all">Add New Student &rarr;</button>
+        </div>
+    </main>
+
+    <script>
+        const btn = document.getElementById('menu-btn');
+        const menu = document.getElementById('nav-dropdown');
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if(menu.classList.contains('hidden')){
+                menu.classList.remove('hidden');
+                menu.classList.add('menu-transition');
+            } else {
+                menu.classList.add('hidden');
+                menu.classList.remove('menu-transition');
+            }
+        });
+        document.addEventListener('click', () => { menu.classList.add('hidden'); menu.classList.remove('menu-transition'); });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduFace - Administration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes slideDownMenu { from { opacity: 0; transform: translateY(-12px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .menu-transition { animation: slideDownMenu 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans min-h-screen p-4 flex flex-col items-center">
+    <header class="w-full max-w-2xl flex justify-between items-center py-2 mb-4 relative">
+        <div onclick="location.href='/'" class="flex items-center gap-2 text-blue-900 font-bold text-xl cursor-pointer">
+            <span class="p-2 bg-blue-100 rounded-lg text-blue-600">📷</span> EduFace
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="/logout" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-1 shadow-sm">
+                🔒 Lock Panel
+            </a>
+            <button id="menu-btn" class="text-gray-600 text-3xl focus:outline-none p-1">☰</button>
+        </div>
+        <div id="nav-dropdown" class="hidden absolute right-0 top-16 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 py-2">
+            <a href="/" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">🏠 Home</a>
+            <a href="/dashboard" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">📊 Dashboard</a>
+            <a href="/attendance" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">📷 Attendance Session</a>
+            <a href="/register" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">👤 Register</a>
+            <a href="/admin" class="block px-4 py-3 text-sm text-blue-600 bg-blue-50/50 font-bold">⚙️ Admin Tool</a>
+        </div>
+    </header>
+
+    <div class="w-full max-w-2xl flex flex-col gap-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">⚙️ Administration Logging</h2>
+            <div class="bg-slate-50 p-4 rounded-xl mb-6 text-xs flex flex-col gap-2">
+                <span class="font-bold text-gray-700">Manual Entry Override Input</span>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                    <select id="st-id" class="p-2.5 border rounded-lg bg-white text-[11px]">
+                        {% for s in students %}<option value="{{s[0]}}">{{s[1]}} {{s[2]}} (Roll: {{s[3]}} - Class: {{s[4]}})</option>{% endfor %}
+                    </select>
+                    <input type="date" id="st-dt" class="p-2.5 border rounded-lg bg-white text-[11px]">
+                    
+                    <select id="st-status" class="p-2.5 border rounded-lg bg-white text-[11px] font-bold">
+                        <option value="Present" class="text-emerald-600 font-bold">🟢 Present</option>
+                        <option value="Absent" class="text-rose-600 font-bold">🔴 Absent</option>
+                    </select>
+                    
+                    <button onclick="save()" class="bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all text-[11px]">Override Record</button>
+                </div>
+            </div>
+
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="bg-slate-100 text-gray-600 uppercase text-[10px]"><th class="p-3">Identity</th><th class="p-3">Roll No</th><th class="p-3">Class</th><th class="p-3">Date</th><th class="p-3">Status</th><th class="p-3">Removal</th></tr>
+                </thead>
+                <tbody class="divide-y text-gray-700">
+                    {% for r in records %}
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="p-3 font-medium text-gray-900">{{r[1]}} {{r[2]}}</td>
+                        <td class="p-3 text-gray-400">{{r[3]}}</td>
+                        <td class="p-3 font-semibold text-blue-600">{{r[4]}}</td>
+                        <td class="p-3 text-gray-500">{{r[5]}}</td>
+                        
+                        <td class="p-3">
+                            {% if r[6] == 'Present' %}
+                            <span class="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] px-2 py-0.5 rounded-md font-bold">Present</span>
+                            {% else %}
+                            <span class="bg-rose-50 text-rose-700 border border-rose-100 text-[10px] px-2 py-0.5 rounded-md font-bold">Absent</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="p-3"><button onclick="drop({{r[0]}})" class="text-rose-500 hover:text-rose-700 font-bold">🗑️</button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 class="text-lg font-bold text-gray-800 mb-3">👤 Student Registration Directory</h2>
+            <p class="text-gray-400 text-xs mb-4">Wiping out profiles from this view drops all related daily log history automatically.</p>
+            
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="bg-slate-100 text-gray-600 uppercase text-[10px]"><th class="p-3">Name</th><th class="p-3">Class</th><th class="p-3">Roll Number</th><th class="p-3">Actions</th></tr>
+                </thead>
+                <tbody class="divide-y text-gray-700">
+                    {% for s in students %}
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="p-3 font-medium text-gray-900">{{s[1]}} {{s[2]}}</td>
+                        <td class="p-3 font-semibold text-blue-600">Class {{s[4]}}</td>
+                        <td class="p-3 text-gray-500">{{s[3]}}</td>
+                        <td class="p-3">
+                            <button onclick="deleteStudent({{s[0]}}, '{{s[1]}} {{s[2]}}')" class="text-rose-600 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-md font-bold text-[11px] transition-all">Remove Student 🗑️</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const btn = document.getElementById('menu-btn');
+        const menu = document.getElementById('nav-dropdown');
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if(menu.classList.contains('hidden')){ menu.classList.remove('hidden'); menu.classList.add('menu-transition'); }
+            else { menu.classList.add('hidden'); menu.classList.remove('menu-transition'); }
+        });
+        document.addEventListener('click', () => { menu.classList.add('hidden'); menu.classList.remove('menu-transition'); });
+        document.getElementById('st-dt').valueAsDate = new Date();
+
+        // FIXED: Changed 'def' keyword to 'function' to fix browser engine freeze bug
+        function save() {
+            fetch('/admin', { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ 
+                    student_id: document.getElementById('st-id').value, 
+                    date: document.getElementById('st-dt').value,
+                    status: document.getElementById('st-status').value
+                }) 
+            })
+            .then(res => res.json()).then(data => { if(data.status === 'error') { alert(data.message); } else { location.reload(); } });
+        }
+        
+        function drop(id) { if(confirm("Delete this log entry row?")) fetch(`/admin?id=${id}`, { method: 'DELETE' }).then(() => location.reload()); }
+        
+        function deleteStudent(studentId, name) {
+            if(confirm(`Are you completely sure you want to delete ${name}? This action clears all their attendance records logs permanently!`)) {
+                fetch(`/admin?student_id=${studentId}`, { method: 'DELETE' })
+                    .then(() => location.reload());
+            }
+        }
+    </script>
+</body>
+</html>
+
