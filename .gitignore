@@ -1,0 +1,17 @@
+# Python cache & temporary files
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+venv/
+env/
+
+# Database & User Uploads (Keeps personal data off GitHub)
+face_db.db
+static/uploads/*
+!static/uploads/.gitkeep
+
+# IDE settings
+.vscode/
+.idea/
+.DS_Store
