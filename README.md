@@ -33,7 +33,7 @@ EduFace is a touchless attendance system powered by AI and computer vision. It r
 
 ### 1. Clone the Repository
 ```bash
-git clone [https://github.com/AbhinavChauhan67/EduFace.git](https://github.com/AbhinavChauhan67/EduFace.git)
+git clone https://github.com/AbhinavChauhan67/EduFace.git
 cd EduFace
 ```
 
@@ -41,3 +41,6 @@ cd EduFace
 ```bash
 python app.py
 ```
+
+### 3. Using
+Go to your browser's url tab and type "localhost:5000"

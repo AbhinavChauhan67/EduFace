@@ -6,109 +6,73 @@
     <title>EduFace - Attendance Scanner</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 1. Expand the main page container for PC screens */
-        .container, .card, main {
-            width: 90%;
-            max-width: 1200px; /* Allows full expansion on desktop */
+        .container {
+            width: 95%;
+            max-width: 1200px;
             margin: 20px auto;
         }
-
-        /* 2. Force webcam & video feeds to a proper 16:9 widescreen ratio */
-        video, #video, .webcam-feed {
+        #video-container {
             width: 100%;
             max-width: 800px;
-            aspect-ratio: 16 / 9; /* Hard-locks webcam stream to desktop proportions */
+            aspect-ratio: 16 / 9;
+            background-color: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+        }
+        #webcam {
+            width: 100%;
+            height: 100%;
             object-fit: cover;
-            border-radius: 10px;
-            display: block;
-            margin: 0 auto;
         }
     </style>
 </head>
-<body class="bg-slate-50 font-sans min-h-screen flex flex-col items-center p-4">
-    <header class="w-full max-w-md flex justify-between items-center py-4 relative">
+<body class="bg-slate-50 font-sans min-h-screen p-4 flex flex-col items-center">
+    <header class="w-full max-w-4xl flex justify-between items-center py-2 mb-4">
         <div onclick="location.href='/'" class="flex items-center gap-2 text-blue-900 font-bold text-xl cursor-pointer">
             <span class="p-2 bg-blue-100 rounded-lg text-blue-600">📷</span> EduFace
         </div>
         <button id="menu-btn" class="text-gray-600 text-3xl focus:outline-none p-1">☰</button>
-        <div id="nav-dropdown" class="hidden absolute right-0 top-16 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 py-2">
-            <a href="/" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">🏠 Home</a>
-            <a href="/dashboard" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">📊 Dashboard</a>
-            <a href="/attendance" class="block px-4 py-3 text-sm text-blue-600 bg-blue-50/50 font-bold border-b border-gray-50">📷 Attendance Session</a>
-            <a href="/register" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50 transition-colors">👤 Register</a>
-            <a href="/admin" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold transition-colors">⚙️ Admin Tool</a>
-        </div>
     </header>
 
-    <main class="w-full max-w-md text-center mt-4">
-        <h2 class="text-xl font-bold text-gray-800 text-left mb-1">Live Scanning Box</h2>
-        <p class="text-gray-400 text-xs text-left mb-4">Position face clearly into the streaming lens.</p>
-        
-        <div class="w-full h-72 bg-neutral-950 rounded-3xl overflow-hidden border-4 border-white shadow-xl relative">
-            <video id="v" autoplay playsinline muted class="w-full h-full object-cover"></video>
-            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 px-4 py-1 rounded-full text-white text-[11px] font-semibold flex items-center gap-2">
-                <span class="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></span> Scanning Active
+    <main class="w-full max-w-4xl flex flex-col items-center gap-4">
+        <div class="text-center mb-2">
+            <h1 class="text-2xl font-bold text-gray-800">Live Scanning Box</h1>
+            <p class="text-gray-500 text-sm">Position face clearly into the streaming lens.</p>
+        </div>
+
+        <div id="video-container" class="shadow-xl border border-gray-200">
+            <!-- HTML5 Video element triggered by Browser Permission -->
+            <video id="webcam" autoplay playsinline muted></video>
+            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-4 py-1.5 rounded-full backdrop-blur-sm">
+                Scanning Active
             </div>
         </div>
-        <div id="msg" class="mt-4 p-4 rounded-xl hidden font-bold text-sm alert-animate shadow-sm"></div>
+        <div id="status-msg" class="text-sm font-semibold text-blue-600 h-6"></div>
     </main>
 
     <script>
-        const btn = document.getElementById('menu-btn');
-        const menu = document.getElementById('nav-dropdown');
-        
-        // Navigation Dropdown Handler
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if(menu.classList.contains('hidden')){ 
-                menu.classList.remove('hidden'); 
-                menu.classList.add('menu-transition'); 
-            } else { 
-                menu.classList.add('hidden'); 
-                menu.classList.remove('menu-transition'); 
-            }
-        });
-        document.addEventListener('click', () => { 
-            menu.classList.add('hidden'); 
-            menu.classList.remove('menu-transition'); 
-        });
+        const video = document.getElementById('webcam');
+        const statusMsg = document.getElementById('status-msg');
 
-        // Initialize Camera Stream Setup
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-            .then(s => { 
-                document.getElementById('v').srcObject = s; 
-                setTimeout(verify, 2000); 
-            })
-            .catch(err => {
-                alert("Camera access denied. Please check your browser device permissions.");
-            });
-
-        function verify() {
-            fetch('/scan', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({image: ""}) })
-                .then(res => res.json()).then(d => {
-                    const box = document.getElementById('msg'); 
-                    box.classList.remove('hidden');
-                    
-                    if(d.status === 'success') {
-                        if(d.message.includes("already")) {
-                            box.className = "mt-4 p-4 rounded-xl bg-amber-50 text-amber-800 border border-amber-100 alert-animate shadow-sm";
-                            box.innerText = `⚠️ ${d.name}: ${d.message}`;
-                        } else {
-                            box.className = "mt-4 p-4 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-100 alert-animate shadow-sm";
-                            box.innerText = `✅ Success: ${d.name} (${d.message})`;
-                        }
-                    } else {
-                        box.className = "mt-4 p-4 rounded-xl bg-rose-50 text-rose-800 border border-rose-100 alert-animate shadow-sm";
-                        box.innerText = `❌ Match Failure: ${d.message}`;
-                    }
-
-                    // FIX: Comment changed to JavaScript standard. Box hides smoothly after 2 seconds.
-                    setTimeout(() => {
-                        box.classList.add('hidden');
-                    }, 2000);
+        // Request camera permission from the browser
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" } 
                 });
+                video.srcObject = stream;
+                statusMsg.textContent = "Camera connected successfully.";
+                statusMsg.className = "text-sm font-semibold text-emerald-600 h-6";
+            } catch (err) {
+                console.error("Camera Access Error:", err);
+                statusMsg.textContent = "Camera permission denied or camera unavailable.";
+                statusMsg.className = "text-sm font-semibold text-rose-600 h-6";
+                alert("Please grant camera permission in your browser address bar.");
+            }
         }
+
+        window.addEventListener('DOMContentLoaded', startCamera);
     </script>
 </body>
 </html>
-
