@@ -6,8 +6,23 @@
     <title>EduFace - Classes Report</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @keyframes slideDownMenu { from { opacity: 0; transform: translateY(-12px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        .menu-transition { animation: slideDownMenu 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        /* 1. Expand the main page container for PC screens */
+        .container, .card, main {
+            width: 90%;
+            max-width: 1200px; /* Allows full expansion on desktop */
+            margin: 20px auto;
+        }
+
+        /* 2. Force webcam & video feeds to a proper 16:9 widescreen ratio */
+        video, #video, .webcam-feed {
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 16 / 9; /* Hard-locks webcam stream to desktop proportions */
+            object-fit: cover;
+            border-radius: 10px;
+            display: block;
+            margin: 0 auto;
+        }
     </style>
 </head>
 <body class="bg-slate-50 font-sans min-h-screen flex flex-col items-center p-4">
