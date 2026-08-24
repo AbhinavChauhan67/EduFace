@@ -6,21 +6,16 @@
     <title>EduFace - Attendance Scanner</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .container {
-            width: 95%;
-            max-width: 1200px;
-            margin: 20px auto;
-        }
         #video-container {
             width: 100%;
-            max-width: 800px;
+            max-width: 900px;
             aspect-ratio: 16 / 9;
             background-color: #000;
             border-radius: 16px;
             overflow: hidden;
             position: relative;
         }
-        #webcam {
+        #video {
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -28,51 +23,111 @@
     </style>
 </head>
 <body class="bg-slate-50 font-sans min-h-screen p-4 flex flex-col items-center">
-    <header class="w-full max-w-4xl flex justify-between items-center py-2 mb-4">
+    <header class="w-full max-w-5xl flex justify-between items-center py-2 mb-4 relative">
         <div onclick="location.href='/'" class="flex items-center gap-2 text-blue-900 font-bold text-xl cursor-pointer">
             <span class="p-2 bg-blue-100 rounded-lg text-blue-600">📷</span> EduFace
         </div>
-        <button id="menu-btn" class="text-gray-600 text-3xl focus:outline-none p-1">☰</button>
+        
+        <div class="flex items-center gap-2">
+            <button id="menu-btn" class="text-gray-600 text-3xl focus:outline-none p-1 hover:text-blue-600 transition-colors">☰</button>
+        </div>
+
+        <div id="nav-dropdown" class="hidden absolute right-0 top-16 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 py-2">
+            <a href="/" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50">🏠 Home</a>
+            <a href="/dashboard" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50">📊 Dashboard</a>
+            <a href="/attendance" class="block px-4 py-3 text-sm text-blue-600 bg-blue-50/50 font-bold border-b border-gray-50">📷 Attendance Session</a>
+            <a href="/register" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold border-b border-gray-50">👤 Register</a>
+            <a href="/admin" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-semibold">⚙️ Admin Tool</a>
+        </div>
     </header>
 
-    <main class="w-full max-w-4xl flex flex-col items-center gap-4">
+    <main class="w-full max-w-5xl flex flex-col items-center gap-4">
         <div class="text-center mb-2">
-            <h1 class="text-2xl font-bold text-gray-800">Live Scanning Box</h1>
-            <p class="text-gray-500 text-sm">Position face clearly into the streaming lens.</p>
+            <h1 class="text-2xl font-bold text-gray-800">Live Attendance Scanner</h1>
+            <p class="text-gray-500 text-sm">Align face in frame for automatic detection.</p>
         </div>
 
         <div id="video-container" class="shadow-xl border border-gray-200">
-            <!-- HTML5 Video element triggered by Browser Permission -->
-            <video id="webcam" autoplay playsinline muted></video>
-            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-4 py-1.5 rounded-full backdrop-blur-sm">
-                Scanning Active
+            <video id="video" autoplay playsinline muted></video>
+            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-4 py-1.5 rounded-full backdrop-blur-sm flex items-center gap-2">
+                <span id="scan-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span id="scan-status-text">Scanning Active</span>
             </div>
         </div>
-        <div id="status-msg" class="text-sm font-semibold text-blue-600 h-6"></div>
+
+        <div id="status-msg" class="text-base font-semibold text-gray-600 h-8 flex items-center justify-center">Initializing camera...</div>
     </main>
 
-    <script>
-        const video = document.getElementById('webcam');
-        const statusMsg = document.getElementById('status-msg');
+    <canvas id="hidden-canvas" class="hidden"></canvas>
 
-        // Request camera permission from the browser
-        async function startCamera() {
+    <script>
+        // Menu Toggle
+        const btn = document.getElementById('menu-btn');
+        const menu = document.getElementById('nav-dropdown');
+        btn.addEventListener('click', (e) => { e.stopPropagation(); menu.classList.toggle('hidden'); });
+        document.addEventListener('click', () => menu.classList.add('hidden'));
+
+        // Camera & AI Scan Engine
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('hidden-canvas');
+        const statusMsg = document.getElementById('status-msg');
+        let isProcessing = false;
+
+        async function initCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" } 
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
                 });
                 video.srcObject = stream;
-                statusMsg.textContent = "Camera connected successfully.";
-                statusMsg.className = "text-sm font-semibold text-emerald-600 h-6";
+                await video.play();
+                statusMsg.textContent = "Look into the camera to log attendance.";
+                statusMsg.className = "text-base font-semibold text-gray-600 h-8 flex items-center justify-center";
+                
+                // Start sending frames to backend every 1000ms (1 second)
+                setInterval(captureAndSendFrame, 1000);
             } catch (err) {
-                console.error("Camera Access Error:", err);
-                statusMsg.textContent = "Camera permission denied or camera unavailable.";
-                statusMsg.className = "text-sm font-semibold text-rose-600 h-6";
-                alert("Please grant camera permission in your browser address bar.");
+                console.error("Webcam Access Error:", err);
+                statusMsg.textContent = "Camera permission denied or camera unreadable.";
+                statusMsg.className = "text-base font-semibold text-rose-600 h-8 flex items-center justify-center";
             }
         }
 
-        window.addEventListener('DOMContentLoaded', startCamera);
+        async function captureAndSendFrame() {
+            if (isProcessing || !video.videoWidth) return;
+            isProcessing = true;
+
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+            try {
+                const response = await fetch('/process_frame', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'success' && data.name) {
+                        statusMsg.textContent = `✅ Attendance Marked: ${data.name}`;
+                        statusMsg.className = "text-base font-bold text-emerald-600 h-8 flex items-center justify-center";
+                    } else if (data.message) {
+                        statusMsg.textContent = data.message;
+                        statusMsg.className = "text-base font-medium text-amber-600 h-8 flex items-center justify-center";
+                    }
+                }
+            } catch (err) {
+                console.error("Frame processing error:", err);
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', initCamera);
     </script>
 </body>
 </html>

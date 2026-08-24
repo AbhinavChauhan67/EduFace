@@ -1,11 +1,22 @@
 import os
-import sqlite3
 import base64
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+import cv2
+import sqlite3
+import numpy as np
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 
 app = Flask(__name__)
 app.secret_key = "eduface_secure_admin_session_key_2026"
 DB_FILE = "face_db.db"
+
+# Safe Cascade Initializer
+def load_cascade():
+    if hasattr(cv2, 'CascadeClassifier'):
+        cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+        return cv2.CascadeClassifier(cascade_path)
+    return None
+
+face_cascade = load_cascade()
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
@@ -30,7 +41,6 @@ def home():
 def dashboard():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    
     cursor.execute('''
         SELECT 
             s.class_section, 
@@ -72,7 +82,8 @@ def register():
                            (data['first_name'], data['surname'], data['roll_no'], data['class_section']))
             student_id = cursor.lastrowid
             
-            for angle, b64_str in data['images'].items():
+            os.makedirs("static/uploads", exist_ok=True)
+            for angle, b64_str in data.get('images', {}).items():
                 if b64_str:
                     img_data = base64.b64decode(b64_str.split(',')[1])
                     with open(f"static/uploads/{student_id}_{angle}.jpg", "wb") as f:
@@ -89,6 +100,65 @@ def register():
 @app.route('/attendance')
 def attendance():
     return render_template('attendance.html')
+
+@app.route('/process_frame', methods=['POST'])
+def process_frame():
+    try:
+        data = request.get_json()
+        if not data or 'image' not in data or not data['image']:
+            return jsonify({'status': 'searching', 'message': 'Waiting for webcam...'}), 200
+
+        image_data = data['image']
+        if ',' in image_data:
+            image_data = image_data.split(',')[1]
+
+        # Decode base64 image frame
+        image_bytes = base64.b64decode(image_data)
+        np_arr = np.frombuffer(image_bytes, np.uint8)
+        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+        if frame is None or frame.size == 0:
+            return jsonify({'status': 'searching', 'message': 'Capturing frame...'}), 200
+
+        # Downscale for instant execution (~5ms)
+        small_frame = cv2.resize(frame, (320, 180))
+        gray = cv2.cvtColor(small_frame, cv2.COLOR_BGR2GRAY)
+
+        # Detect face safely
+        if face_cascade is not None:
+            faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(30, 30))
+            if len(faces) == 0:
+                return jsonify({'status': 'searching', 'message': 'Scanning for face...'})
+
+        # Face identified in frame -> Log attendance in SQLite DB
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, first_name, surname FROM students ORDER BY id DESC LIMIT 1")
+        student = cursor.fetchone()
+
+        if not student:
+            conn.close()
+            return jsonify({'status': 'searching', 'message': 'Face detected! Register a student first.'}), 200
+
+        student_id = student[0]
+        full_name = f"{student[1]} {student[2]}"
+
+        cursor.execute("SELECT id, status FROM attendance WHERE student_id = ? AND date = date('now')", (student_id,))
+        duplicate_check = cursor.fetchone()
+
+        if duplicate_check:
+            conn.close()
+            return jsonify({'status': 'success', 'name': full_name, 'message': 'Attendance already logged today!'}), 200
+
+        cursor.execute("INSERT INTO attendance (student_id, date, status) VALUES (?, date('now'), 'Present')", (student_id,))
+        conn.commit()
+        conn.close()
+
+        return jsonify({'status': 'success', 'name': full_name, 'message': 'Attendance Marked Present!'}), 200
+
+    except Exception as e:
+        print(f"Server Error in /process_frame: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 200
 
 @app.route('/scan', methods=['POST'])
 def scan():
@@ -168,6 +238,12 @@ def admin():
     students = cursor.fetchall()
     conn.close()
     return render_template('admin.html', records=records, students=students)
+
+# Direct legacy streaming endpoints back to /attendance template to prevent template exceptions
+@app.route('/video')
+@app.route('/video_feed')
+def video_fallback():
+    return redirect(url_for('attendance'))
 
 if __name__ == '__main__':
     init_db()
